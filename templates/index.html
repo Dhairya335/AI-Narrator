@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web to Podcast</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .loading { display: none; }
+        .loading.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">Web to Podcast</h1>
+            <p class="text-gray-600">Turn articles into audio</p>
+        </header>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="mb-4">
+                <label for="source" class="block text-gray-700 mb-2">URL or PDF:</label>
+                <div class="flex gap-4">
+                    <input type="text" id="source" placeholder="https://example.com/article" 
+                           class="flex-grow p-2 border rounded focus:ring-2 focus:ring-blue-500">
+                    <input type="file" id="fileInput" accept=".pdf" class="hidden">
+                    <button onclick="document.getElementById('fileInput').click()" 
+                            class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded">
+                        Upload PDF
+                    </button>
+                </div>
+                <p id="fileName" class="text-sm text-gray-500 mt-1"></p>
+            </div>
+
+            <button id="generateBtn" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+                Generate
+            </button>
+        </div>
+
+        <div id="loading" class="text-center mb-6 loading">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mb-2"></div>
+            <p class="text-gray-600">Processing...</p>
+        </div>
+
+        <div id="result" class="hidden bg-white rounded-lg shadow p-6">
+            <div id="sourceInfo" class="mb-4 p-3 bg-blue-50 rounded">
+                <h3 class="font-semibold text-blue-800 mb-1">Source</h3>
+                <p id="sourceType" class="text-sm text-blue-600"></p>
+                <p id="contentLength" class="text-sm text-blue-600"></p>
+                <details class="mt-2">
+                    <summary class="text-sm text-blue-700 cursor-pointer">Preview</summary>
+                    <div id="contentPreview" class="mt-2 p-2 bg-white rounded text-sm border"></div>
+                </details>
+            </div>
+            
+            <h2 class="text-xl font-bold mb-3">Script</h2>
+            <div id="script" class="bg-gray-50 p-4 rounded mb-4"></div>
+            
+            <div id="audioPlayer">
+                <h3 class="font-semibold mb-2">Audio</h3>
+                <div id="audioContainer" class="bg-gray-50 p-3 rounded">
+                    <audio id="podcastAudio" controls class="w-full">
+                        Your browser does not support audio.
+                    </audio>
+                    <div class="mt-2 flex justify-between text-sm text-gray-500">
+                        <span id="audioDuration">00:00</span>
+                        <a id="downloadAudio" href="#" class="text-blue-600">Download</a>
+                    </div>
+                </div>
+                <div id="audioError" class="hidden mt-2 text-red-500 text-sm">
+                    Audio failed
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t">
+                <button id="newPodcast" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+                    New
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        
+        const elements = {
+            generateBtn: $('generateBtn'),
+            loading: $('loading'),
+            result: $('result'),
+            script: $('script'),
+            sourceInput: $('source'),
+            fileInput: $('fileInput'),
+            fileName: $('fileName'),
+            newPodcastBtn: $('newPodcast'),
+            audioPlayer: $('podcastAudio'),
+            audioContainer: $('audioContainer'),
+            audioError: $('audioError'),
+            downloadLink: $('downloadAudio'),
+            audioDuration: $('audioDuration')
+        };
+
+        function updateAudioPlayer(audioUrl) {
+            if (audioUrl) {
+                elements.audioPlayer.src = audioUrl;
+                elements.downloadLink.href = audioUrl;
+                elements.downloadLink.download = `podcast-${new Date().toISOString().slice(0, 10)}.mp3`;
+                
+                elements.audioPlayer.onloadedmetadata = () => {
+                    const duration = Math.floor(elements.audioPlayer.duration);
+                    const minutes = Math.floor(duration / 60);
+                    const seconds = duration % 60;
+                    elements.audioDuration.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                };
+                
+                elements.audioError.classList.add('hidden');
+                elements.audioContainer.classList.remove('hidden');
+            } else {
+                elements.audioContainer.classList.add('hidden');
+                elements.audioError.classList.remove('hidden');
+            }
+        }
+
+        elements.fileInput.onchange = (e) => {
+            if (e.target.files.length > 0) {
+                elements.fileName.textContent = `Selected: ${e.target.files[0].name}`;
+                elements.sourceInput.value = '';
+            }
+        };
+
+        elements.generateBtn.onclick = async () => {
+            const source = elements.sourceInput.value.trim();
+            const file = elements.fileInput.files[0];
+            
+            if (!source && !file) {
+                alert('Please enter a URL or upload a PDF');
+                return;
+            }
+            
+            if (source && !source.match(/^https?:\/\/.+/)) {
+                alert('Please enter a valid URL');
+                return;
+            }
+
+            elements.loading.classList.add('active');
+            elements.generateBtn.disabled = true;
+            
+            try {
+                let response;
+                
+                if (file) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    response = await fetch('/generate', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    response = await fetch('/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ source: source })
+                    });
+                }
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed');
+                }
+
+                const data = await response.json();
+                
+                if (data.source_type) {
+                    $('sourceType').textContent = `Source: ${data.source_type}`;
+                }
+                if (data.content_length) {
+                    $('contentLength').textContent = `Length: ${data.content_length.toLocaleString()} chars`;
+                }
+                if (data.content_preview) {
+                    $('contentPreview').textContent = data.content_preview;
+                }
+                
+                elements.script.innerHTML = data.script ? data.script.replace(/\n/g, '<br>') : 'No script';
+                
+                if (data.audio_url) {
+                    updateAudioPlayer(data.audio_url);
+                } else {
+                    elements.audioContainer.classList.add('hidden');
+                    elements.audioError.classList.remove('hidden');
+                    if (data.warning) {
+                        elements.audioError.textContent = data.warning;
+                    }
+                }
+                
+                elements.result.classList.remove('hidden');
+                elements.result.scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            } finally {
+                elements.loading.classList.remove('active');
+                elements.generateBtn.disabled = false;
+            }
+        };
+
+        elements.newPodcastBtn.onclick = () => {
+            elements.result.classList.add('hidden');
+            elements.sourceInput.value = '';
+            elements.fileInput.value = '';
+            elements.fileName.textContent = '';
+            elements.script.textContent = '';
+            elements.audioPlayer.pause();
+            elements.audioPlayer.src = '';
+            elements.audioContainer.classList.add('hidden');
+            elements.audioError.classList.add('hidden');
+        };
+    </script>
+</body>
+</html>
