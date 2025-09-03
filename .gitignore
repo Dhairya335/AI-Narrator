@@ -1,5 +1,6 @@
 .env
 .env.template
+pyvenv.cfg
 __pycache__/
 *.pyc
 *.pyo
