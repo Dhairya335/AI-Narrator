@@ -11,11 +11,10 @@ RUN apt-get update && apt-get install -y \
     g++ \
     curl \
     build-essential \
-    libmupdf-dev \
     libfreetype6-dev \
     libjpeg-dev \
     libopenjp2-7-dev \
-    libjbig2-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
