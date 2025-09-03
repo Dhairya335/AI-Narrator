@@ -14,13 +14,13 @@ def detect_content_type(text):
 def calculate_podcast_length(content_length):
     """Calculate optimal podcast length and token limits based on content size."""
     if content_length < 2000:
-        return "short", 3000
+        return "short", 4000
     elif content_length < 10000:
-        return "medium", 6000
+        return "medium", 8000
     elif content_length < 30000:
-        return "long", 12000
+        return "long", 16000
     else:
-        return "extended", 20000
+        return "extended", 25000
 
 
 def chunk_content(text, max_chunk_size=50000):

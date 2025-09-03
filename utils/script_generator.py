@@ -35,10 +35,10 @@ class ScriptGenerator:
         )
         
         length_instructions = {
-            "short": "Create a focused 3-4 minute podcast covering the main points clearly.",
-            "medium": "Create a 6-8 minute podcast with detailed analysis and context.",
-            "long": "Create a 12-15 minute comprehensive podcast covering all major aspects.",
-            "extended": "Create a 20-25 minute in-depth podcast with thorough exploration of the topic."
+            "short": "Create a comprehensive podcast covering all important aspects.",
+            "medium": "Create a detailed podcast with thorough analysis and context.",
+            "long": "Create an in-depth podcast covering all major aspects comprehensively.",
+            "extended": "Create a comprehensive, detailed podcast with thorough exploration of all aspects."
         }
         
         content_instructions = {
