@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Web to Podcast
 
 Convert web content to podcast audio.
@@ -9,3 +10,7 @@ Convert web content to podcast audio.
 4. Open http://localhost:5000
 
 Supports URLs and PDFs.
+=======
+# AI-Narrator
+For generating Research contents into a Podcast that can be listened anywhere to save hours of Research time
+>>>>>>> 292ce582ffe2f2506cc2b848936527a2a0dc458c
