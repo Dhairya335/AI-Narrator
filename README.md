@@ -64,15 +64,22 @@ A Flask web application that converts research papers, articles, and web content
 
 ```
 research-podcast-generator/
-├── app.py                 # Main Flask application
+├── app.py                      # Main Flask application entry point
+├── routes/
+│   ├── __init__.py
+│   └── api.py                  # API endpoints and request handling
 ├── utils/
-│   └── audio_utils.py     # Audio generation utilities
+│   ├── __init__.py
+│   ├── audio_utils.py          # Audio generation utilities
+│   ├── content_extractor.py    # PDF and web content extraction
+│   ├── content_analyzer.py     # Content type detection and analysis
+│   └── script_generator.py     # AI-powered script generation
 ├── templates/
-│   └── index.html         # Web interface
+│   └── index.html              # Web interface
 ├── static/
-│   └── audio/             # Generated podcast files
-├── uploads/               # Temporary file storage
-└── requirements.txt       # Python dependencies
+│   └── audio/                  # Generated podcast files
+├── uploads/                    # Temporary file storage
+└── requirements.txt            # Python dependencies
 ```
 
 Built for researchers, students, and professionals who need efficient ways to consume written content.
