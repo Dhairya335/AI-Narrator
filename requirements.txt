@@ -7,3 +7,4 @@ beautifulsoup4==4.12.2
 PyMuPDF==1.22.5
 gunicorn==21.2.0
 lxml==4.9.3
+gTTS==2.4.0
