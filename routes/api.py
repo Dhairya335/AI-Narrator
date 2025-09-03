@@ -17,8 +17,14 @@ audio_gen = None
 def init_generators(openai_api_key):
     """Initialize the generators with API keys."""
     global script_gen, audio_gen
-    script_gen = ScriptGenerator(openai_api_key)
-    audio_gen = AudioGenerator()
+    try:
+        script_gen = ScriptGenerator(openai_api_key)
+        audio_gen = AudioGenerator()
+        print("Generators initialized successfully")
+    except Exception as e:
+        print(f"Error initializing generators: {e}")
+        script_gen = None
+        audio_gen = None
 
 def generate_audio(script):
     """Generate audio file from script."""
@@ -48,7 +54,7 @@ def test_api():
     """Test OpenAI API connection."""
     try:
         response = script_gen.client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=[{"role": "user", "content": "Say hello"}],
             max_tokens=10
         )
@@ -97,6 +103,10 @@ def generate_podcast():
         
         print(f"Extracted {len(content)} characters of content")
         print(f"About to call create_podcast_script...")
+        
+        # Check if generators are initialized
+        if not script_gen:
+            return jsonify({'error': 'OpenAI client not initialized. Check API key configuration.'}), 500
         
         # Generate podcast script
         script = script_gen.create_podcast_script(content)
