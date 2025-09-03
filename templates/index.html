@@ -146,9 +146,11 @@
             elements.generateBtn.disabled = true;
             
             try {
+                console.log('Making request to /generate');
                 let response;
                 
                 if (file) {
+                    console.log('Uploading file:', file.name);
                     const formData = new FormData();
                     formData.append('file', file);
                     response = await fetch('/generate', {
@@ -156,12 +158,15 @@
                         body: formData
                     });
                 } else {
+                    console.log('Sending URL:', source);
                     response = await fetch('/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ source: source })
                     });
                 }
+                
+                console.log('Response status:', response.status);
 
                 if (!response.ok) {
                     const error = await response.json();
@@ -196,6 +201,7 @@
                 elements.result.scrollIntoView({ behavior: 'smooth' });
                 
             } catch (error) {
+                console.error('Request failed:', error);
                 alert(`Error: ${error.message}`);
             } finally {
                 elements.loading.classList.remove('active');

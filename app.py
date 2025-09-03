@@ -18,7 +18,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['AUDIO_FOLDER'] = 'static/audio'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
@@ -101,11 +101,46 @@ def detect_content_type(text):
         return 'tutorial'
     return 'general'
 
+def calculate_podcast_length(content_length):
+    if content_length < 2000:
+        return "short", 3000
+    elif content_length < 10000:
+        return "medium", 6000
+    elif content_length < 30000:
+        return "long", 12000
+    else:
+        return "extended", 20000
+
+def chunk_content(text, max_chunk_size=50000):
+    if len(text) <= max_chunk_size:
+        return [text]
+    
+    chunks = []
+    sentences = text.split('. ')
+    current_chunk = ""
+    
+    for sentence in sentences:
+        if len(current_chunk + sentence) > max_chunk_size and current_chunk:
+            chunks.append(current_chunk.strip())
+            current_chunk = sentence + ". "
+        else:
+            current_chunk += sentence + ". "
+    
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    
+    return chunks
+
 def create_podcast_script(text):
+    print(f"create_podcast_script called with {len(text) if text else 0} characters")
+    
     if not text or len(text.strip()) < 50:
+        print("Text too short, returning None")
         return None
     
     content_type = detect_content_type(text)
+    podcast_length, max_tokens = calculate_podcast_length(len(text))
+    print(f"Content type: {content_type}, Length: {podcast_length}, Tokens: {max_tokens}")
     
     system_prompt = (
         "You are an expert podcast host with deep knowledge across all fields. Your specialty is "
@@ -114,59 +149,106 @@ def create_podcast_script(text):
         "no filler words, just clear expert insights that keep listeners hooked."
     )
     
-    content_instructions = {
-        'research': (
-            "This is a research paper. Break it down like you're explaining groundbreaking science "
-            "to someone who's smart but not in this field. Focus on what they discovered, why it matters, "
-            "and how it could change things. Make the methodology understandable without being boring."
-        ),
-        'news': (
-            "This is news content. Present the facts clearly, give context people need to understand "
-            "why this matters, and analyze what it means for the bigger picture. Stay factual but engaging."
-        ),
-        'tutorial': (
-            "This is educational content. Walk through it like you're teaching someone who really wants "
-            "to learn. Explain each concept clearly, show why it's important, and help them understand "
-            "the bigger picture of what they're learning."
-        ),
-        'general': (
-            "Transform this content into compelling insights. Extract what's most interesting and important, "
-            "explain it clearly, and help listeners understand why they should care about this topic."
-        )
-    }
-    
     structure_prompt = (
         "Structure your podcast script with:\n"
         "1. A compelling hook that immediately shows why this topic matters\n"
         "2. The core content broken down into digestible, fascinating insights\n"
         "3. Real-world implications and why listeners should care\n"
         "4. A memorable conclusion that ties it all together\n\n"
-        "Write like you're speaking, not reading. Use natural transitions. Make every sentence count. "
-        "Aim for 3-5 minutes of engaging content when spoken aloud."
+        "Write like you're speaking, not reading. Use natural transitions. Make every sentence count."
     )
     
-    # Use more content for longer podcasts
-    content_limit = min(25000, len(text))
+    length_instructions = {
+        "short": "Create a focused 3-4 minute podcast covering the main points clearly.",
+        "medium": "Create a 6-8 minute podcast with detailed analysis and context.",
+        "long": "Create a 12-15 minute comprehensive podcast covering all major aspects.",
+        "extended": "Create a 20-25 minute in-depth podcast with thorough exploration of the topic."
+    }
     
-    full_prompt = (
-        f"{content_instructions.get(content_type, content_instructions['general'])}\n\n"
-        f"{structure_prompt}\n\n"
-        f"Content to transform:\n{text[:content_limit]}"
-    )
+    content_instructions = {
+        'research': "Explain the research methodology, findings, and implications in accessible terms.",
+        'news': "Present facts, provide context, and analyze broader implications.",
+        'tutorial': "Walk through concepts step-by-step with clear explanations.",
+        'general': "Extract key insights and explain their significance."
+    }
     
-    try:
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": full_prompt}
-            ],
-            max_tokens=4000,
-            temperature=0.7
+    chunks = chunk_content(text)
+    
+    if len(chunks) == 1:
+        full_prompt = (
+            f"{length_instructions[podcast_length]} "
+            f"{content_instructions.get(content_type, content_instructions['general'])}\n\n"
+            f"{structure_prompt}\n\n"
+            f"Content: {chunks[0]}"
         )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"OpenAI API Error: {e}")
+        
+        try:
+            print(f"Making API call with {len(full_prompt)} character prompt...")
+            response = openai_client.chat.completions.create(
+                model="o3-pro",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": full_prompt}
+                ],
+                max_tokens=max_tokens,
+                temperature=0.7
+            )
+            print("API call successful")
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            print(f"OpenAI API Error: {e}")
+            print(f"Error type: {type(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    else:
+        scripts = []
+        for i, chunk in enumerate(chunks):
+            chunk_prompt = (
+                f"Part {i+1} of {len(chunks)}. {length_instructions[podcast_length]} "
+                f"{content_instructions.get(content_type, content_instructions['general'])}\n\n"
+                f"{structure_prompt}\n\n"
+                f"Content: {chunk}"
+            )
+            
+            try:
+                response = openai_client.chat.completions.create(
+                    model="o3-pro",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": chunk_prompt}
+                    ],
+                    max_tokens=max_tokens // len(chunks),
+                    temperature=0.7
+                )
+                scripts.append(response.choices[0].message.content.strip())
+            except Exception as e:
+                print(f"OpenAI API Error for chunk {i+1}: {e}")
+                continue
+        
+        if scripts:
+            final_prompt = (
+                f"Combine these podcast segments into one cohesive script. "
+                f"Ensure smooth transitions and natural flow:\n\n" +
+                "\n\n--- SEGMENT BREAK ---\n\n".join(scripts)
+            )
+            
+            try:
+                response = openai_client.chat.completions.create(
+                    model="o3-pro",
+                    messages=[
+                        {"role": "system", "content": "You are an expert podcast editor. Create seamless, engaging scripts."},
+                        {"role": "user", "content": final_prompt}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.6
+                )
+                return response.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"OpenAI API Error for final script: {e}")
+                return "\n\n".join(scripts)
+        
         return None
 
 def generate_audio(script):
@@ -194,8 +276,26 @@ def index():
 def serve_audio(filename):
     return send_from_directory(app.config['AUDIO_FOLDER'], filename)
 
+@app.route('/test-api')
+def test_api():
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": "Say hello"}],
+            max_tokens=10
+        )
+        return jsonify({'status': 'success', 'response': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'status': 'error', 'error': str(e)})
+
 @app.route('/generate', methods=['POST'])
 def generate_podcast():
+    print("=== GENERATE PODCAST ROUTE CALLED ===")
+    print(f"Request method: {request.method}")
+    print(f"Request content type: {request.content_type}")
+    print(f"Request files: {list(request.files.keys())}")
+    print(f"Request is_json: {request.is_json}")
+    
     try:
         content = None
         
@@ -220,16 +320,20 @@ def generate_podcast():
             content = extract_web_content(url)
             source_type = 'URL'
         
-        if not content or len(content.strip()) < 50:
+        if not content or len(content.strip()) < 100:
             return jsonify({'error': 'Could not extract enough content from this source'}), 400
         
         print(f"Extracted {len(content)} characters of content")
+        print(f"About to call create_podcast_script...")
         
         script = create_podcast_script(content)
+        print(f"Script result: {script is not None}")
         if not script:
-            return jsonify({'error': 'Failed to generate podcast script. Please check your OpenAI API key.'}), 500
+            print("Script generation returned None")
+            return jsonify({'error': 'Failed to generate podcast script. Check console for details.'}), 500
         
-        print(f"Generated script with {len(script)} characters")
+        estimated_duration = max(3, len(script) // 150)
+        print(f"Generated script with {len(script)} characters, estimated {estimated_duration} minutes")
         
         script_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{uuid.uuid4()}.txt")
         with open(script_path, 'w', encoding='utf-8') as f:
@@ -243,6 +347,8 @@ def generate_podcast():
             'audio_url': audio_url,
             'content_preview': content[:300] + "..." if len(content) > 300 else content,
             'content_length': len(content),
+            'script_length': len(script),
+            'estimated_duration': f"{estimated_duration} minutes",
             'source_type': source_type
         }
         
@@ -253,6 +359,9 @@ def generate_podcast():
         
     except Exception as e:
         print(f"Error in generate_podcast: {e}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Generation failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
