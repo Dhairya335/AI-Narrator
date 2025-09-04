@@ -15,7 +15,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
 
 # Initialize generators with API key
-init_generators(os.getenv('ANTHROPIC_API_KEY'))
+init_generators(os.getenv('OPENAI_API_KEY'))
 
 # Register blueprints
 app.register_blueprint(api_bp)

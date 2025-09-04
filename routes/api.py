@@ -14,12 +14,12 @@ api_bp = Blueprint('api', __name__)
 script_gen = None
 audio_gen = None
 
-def init_generators(anthropic_api_key):
+def init_generators(openai_api_key):
     """Initialize the generators with API keys."""
     global script_gen, audio_gen
     try:
         print("Initializing script generator...")
-        script_gen = ScriptGenerator(anthropic_api_key)
+        script_gen = ScriptGenerator(openai_api_key)
         print("Initializing audio generator...")
         audio_gen = AudioGenerator()
         print("Generators initialized successfully")
@@ -75,14 +75,14 @@ def serve_audio(filename):
 
 @api_bp.route('/test-api')
 def test_api():
-    """Test Anthropic API connection."""
+    """Test OpenAI API connection."""
     try:
-        response = script_gen.client.messages.create(
-            model="claude-opus-4-1-20250805",
-            max_tokens=10,
+        response = script_gen.client.chat.completions.create(
+            model="gpt-5-mini",
+            max_completion_tokens=10,
             messages=[{"role": "user", "content": "Say hello"}]
         )
-        return jsonify({'status': 'success', 'response': response.content[0].text})
+        return jsonify({'status': 'success', 'response': response.choices[0].message.content})
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)})
 
@@ -130,7 +130,7 @@ def generate_podcast():
         
         # Check if generators are initialized
         if not script_gen:
-            return jsonify({'error': 'Anthropic client not initialized. Check API key configuration.'}), 500
+            return jsonify({'error': 'OpenAI client not initialized. Check API key configuration.'}), 500
         
         # Generate podcast script
         script = script_gen.create_podcast_script(content)

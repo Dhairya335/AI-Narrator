@@ -1,10 +1,10 @@
-import anthropic
+from openai import OpenAI
 from .content_analyzer import detect_content_type, calculate_podcast_length, chunk_content, chunk_large_document
 
 
 class ScriptGenerator:
     def __init__(self, api_key):
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.client = OpenAI(api_key=api_key)
     
     def create_podcast_script(self, text):
         """Generate podcast script from text content."""
@@ -34,24 +34,24 @@ class ScriptGenerator:
         )
         
         length_instructions = {
-            "short": "Create a comprehensive podcast covering all important aspects within 5 minutes.",
-            "medium": "Create a detailed podcast with thorough analysis and context, approximately 8-10 minutes long.",
-            "long": "Create an in-depth podcast covering all major aspects comprehensively, around 15-20 minutes.",
-            "extended": "Create a comprehensive, detailed podcast with thorough exploration of all aspects, lasting 30 minutes or more.",
-            "comprehensive": "Create an extensive, highly detailed podcast with deep analysis of all aspects, complex topics, and nuanced discussions, lasting 45+ minutes."
+            "short": "Create a comprehensive podcast covering all important aspects and simplify the explanation within 5 minutes.",
+            "medium": "Create a detailed podcast with thorough analysis and context and simplify the explanation, approximately 8-10 minutes long.",
+            "long": "Create an in-depth podcast covering all major aspects comprehensively and simplify the explanation, around 15-20 minutes.",
+            "extended": "Create a comprehensive, detailed podcast with thorough exploration of all aspects and simplify the explanation, lasting 30 minutes or more.",
+            "comprehensive": "Create an extensive, highly detailed podcast with deep analysis of all aspects, complex topics, and nuanced discussions and simplify the explanation, lasting 45+ minutes."
         }
         
         content_instructions = {
-            'research': "Explain the research methodology, findings, and implications in accessible terms.",
+            'research': "Explain the research methodology, findings, and implications in accessible and simple terms.",
             'news': "Present facts, provide context, and analyze broader implications.",
-            'tutorial': "Walk through concepts step-by-step with clear explanations.",
+            'tutorial': "Walk through concepts step-by-step with clear and simpleexplanations.",
             'general': "Extract key insights and explain their significance."
         }
         
-        # Generate script directly without chunking - let Claude handle the full content
+        # Generate script directly without chunking - let GPT handle the full content
         return self._generate_single_script(
             text, system_prompt, structure_prompt,
-            "Create an extensive, comprehensive podcast with deep analysis covering all aspects, lasting as long as needed to thoroughly explore the content.",
+            "Create an extensive, comprehensive podcast with deep analysis covering all aspects, lasting as long as needed to thoroughly explore the content in simple terms.",
             content_instructions.get(content_type, content_instructions['general'])
         )
     
@@ -66,27 +66,22 @@ class ScriptGenerator:
         
         try:
             print(f"Making API call with {len(full_prompt)} character prompt...")
-            print("Using streaming to avoid timeout...")
             
-            stream = self.client.messages.create(
-                model="claude-opus-4-1-20250805",
-                max_tokens=32000,
-                temperature=0.7,
-                system=system_prompt,
+            response = self.client.chat.completions.create(
+                model="gpt-5-mini",
+                max_completion_tokens=128000 ,
+                # temperature=0.7,
                 messages=[
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": full_prompt}
-                ],
-                stream=True
+                ]
             )
             
-            content = ""
-            for chunk in stream:
-                if chunk.type == "content_block_delta":
-                    content += chunk.delta.text
-            print("Streaming API call successful")
+            content = response.choices[0].message.content
+            print("OpenAI API call successful")
             return content.strip()
         except Exception as e:
-            print(f"Anthropic API Error: {e}")
+            print(f"OpenAI API Error: {e}")
             print(f"Error type: {type(e)}")
             import traceback
             traceback.print_exc()
