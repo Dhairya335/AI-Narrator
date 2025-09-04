@@ -33,7 +33,6 @@ def init_generators(anthropic_api_key):
         audio_gen = None
 
 def generate_audio(script):
-    """Generate audio file from script."""
     print(f"=== GENERATE AUDIO CALLED ===")
     print(f"Script length: {len(script)} characters")
     print(f"Audio generator available: {audio_gen is not None}")

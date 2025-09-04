@@ -80,16 +80,29 @@ class AudioGenerator:
             for i, chunk in enumerate(chunks):
                 print(f"Processing chunk {i+1}/{len(chunks)}: {len(chunk)} characters")
                 
-                response = self.openai_client.audio.speech.create(
-                    model="tts-1-hd",  # High quality model
-                    voice="alloy",     # Natural voice
-                    input=chunk,
-                    response_format="mp3"
-                )
-                
-                audio_bytes = response.content
-                audio_parts.append(audio_bytes)
-                print(f"Generated {len(audio_bytes)} bytes for chunk {i+1}")
+                # Simple retry for network issues
+                for attempt in range(2):
+                    try:
+                        response = self.openai_client.audio.speech.create(
+                            model="tts-1-hd",
+                            voice="alloy",
+                            input=chunk,
+                            response_format="mp3"
+                        )
+                        
+                        audio_bytes = response.content
+                        audio_parts.append(audio_bytes)
+                        print(f"Generated {len(audio_bytes)} bytes for chunk {i+1}")
+                        break
+                        
+                    except Exception as e:
+                        if attempt == 0:
+                            print(f"Chunk {i+1} failed, retrying once: {e}")
+                            import time
+                            time.sleep(1)
+                        else:
+                            print(f"Chunk {i+1} failed permanently: {e}")
+                            raise e
             
             if len(audio_parts) == 1:
                 return audio_parts[0]
