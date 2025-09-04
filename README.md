@@ -4,7 +4,7 @@ A Flask web application that converts research papers, articles, and web content
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
-[![Anthropic](https://img.shields.io/badge/Claude-Opus-4-orange.svg)](https://openai.com)
+[![Anthropic](https://img.shields.io/badge/Claude-Opus-4-orange.svg](https://www.anthropic.com/claude/opus)
 
 ## Features
 
