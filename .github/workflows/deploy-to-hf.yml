@@ -1,0 +1,25 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        lfs: true
+    
+    - name: Push to Hugging Face Spaces
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        git config --global user.email "dhairyapatel335@gmail.com"
+        git config --global user.name "Dhairya335"
+        git remote add space https://huggingface.co/spaces/${{ secrets.HF_SPACE_ID }}
+        git push --force https://user:$HF_TOKEN@huggingface.co/spaces/${{ secrets.HF_SPACE_ID }} main

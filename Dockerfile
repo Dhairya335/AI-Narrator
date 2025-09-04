@@ -32,8 +32,8 @@ RUN mkdir -p uploads static/audio \
 # Switch to non-root user
 USER appuser
 
-# Expose port
-EXPOSE 5000
+# Expose port (HF Spaces uses 7860)
+EXPOSE 7860
 
 # Set environment variables
 ENV FLASK_APP=app.py
@@ -42,7 +42,7 @@ ENV PYTHONUNBUFFERED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/ || exit 1
+    CMD curl -f http://localhost:7860/ || exit 1
 
 # Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "120", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "--timeout", "120", "app:app"]

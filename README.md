@@ -1,3 +1,12 @@
+---
+title: AI Narrator
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+license: mit
+---
+
 # AI Narrator
 
 A Flask web application that converts research papers, articles, and web content into AI-generated podcast audio. Built to help researchers and students consume academic content more efficiently.
@@ -93,3 +102,4 @@ research-podcast-generator/
 ```
 
 Built for researchers, students, and professionals who need efficient ways to consume written content.
+
