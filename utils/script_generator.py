@@ -51,7 +51,7 @@ class ScriptGenerator:
         # Generate script directly without chunking - let Claude handle the full content
         return self._generate_single_script(
             text, system_prompt, structure_prompt,
-            "Create a comprehensive podcast script covering all aspects of the content.",
+            "Create an extensive, comprehensive podcast with deep analysis covering all aspects, lasting as long as needed to thoroughly explore the content.",
             content_instructions.get(content_type, content_instructions['general'])
         )
     
@@ -70,7 +70,7 @@ class ScriptGenerator:
             
             stream = self.client.messages.create(
                 model="claude-opus-4-1-20250805",
-                max_tokens=8192,
+                max_tokens=200000,
                 temperature=0.7,
                 system=system_prompt,
                 messages=[

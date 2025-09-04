@@ -5,9 +5,9 @@ import struct
 import tempfile
 
 try:
-    import azure.cognitiveservices.speech as speechsdk
+    from openai import OpenAI
 except ImportError:
-    speechsdk = None
+    OpenAI = None
 
 try:
     import win32com.client
@@ -16,15 +16,39 @@ except ImportError:
 
 class AudioGenerator:
     def __init__(self):
-        self.speech_key = os.getenv('AZURE_SPEECH_KEY')
-        self.speech_region = os.getenv('AZURE_SPEECH_REGION', 'eastus')
+        self.openai_client = None
+        self._init_openai_tts()
+    
+    def _init_openai_tts(self):
+        """Initialize OpenAI TTS."""
+        try:
+            if OpenAI:
+                openai_key = os.getenv('OPENAI_API_KEY')
+                if openai_key:
+                    print("Initializing OpenAI TTS...")
+                    self.openai_client = OpenAI(api_key=openai_key)
+                    print("OpenAI TTS initialized successfully")
+                else:
+                    print("OpenAI API key not found")
+            else:
+                print("OpenAI client not available")
+        except Exception as e:
+            print(f"Failed to initialize OpenAI TTS: {e}")
+            self.openai_client = None
     
     def create_audio(self, text):
-        if speechsdk and self.speech_key:
-            return self._azure_speech(text)
+        print(f"AudioGenerator.create_audio called with {len(text)} characters")
+        print(f"OpenAI TTS available: {self.openai_client is not None}")
+        print(f"Windows SAPI available: {win32com is not None}")
+        
+        if self.openai_client:
+            print("Using OpenAI TTS")
+            return self._openai_tts(text)
         elif win32com:
+            print("Using Windows SAPI")
             return self._windows_sapi(text)
         else:
+            print("Using fallback audio")
             return self._fallback_audio(text)
     
     def _chunk_text(self, text, max_length=4500):
@@ -47,39 +71,35 @@ class AudioGenerator:
         
         return chunks
     
-    def _azure_speech(self, text):
+    def _openai_tts(self, text):
+        """Generate audio using OpenAI TTS."""
         try:
-            speech_config = speechsdk.SpeechConfig(subscription=self.speech_key, region=self.speech_region)
+            chunks = self._chunk_text(text, max_length=4000)  # OpenAI limit
+            audio_parts = []
             
-            # Use Azure's most natural voice with vibevoice AI
-            speech_config.speech_synthesis_voice_name = "en-US-AvaMultilingualNeural"
-            speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3)
+            for i, chunk in enumerate(chunks):
+                print(f"Processing chunk {i+1}/{len(chunks)}: {len(chunk)} characters")
+                
+                response = self.openai_client.audio.speech.create(
+                    model="tts-1-hd",  # High quality model
+                    voice="alloy",     # Natural voice
+                    input=chunk,
+                    response_format="mp3"
+                )
+                
+                audio_bytes = response.content
+                audio_parts.append(audio_bytes)
+                print(f"Generated {len(audio_bytes)} bytes for chunk {i+1}")
             
-            # Enable vibevoice AI features for more natural speech
-            speech_config.set_property(speechsdk.PropertyId.SpeechServiceConnection_SynthEnableCompressedAudioTransmission, "true")
+            if len(audio_parts) == 1:
+                return audio_parts[0]
             
-            synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=None)
+            return self._combine_audio_parts(audio_parts)
             
-            # Use SSML for better control over speech synthesis
-            ssml = f"""
-            <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
-                <voice name="en-US-AvaMultilingualNeural">
-                    <prosody rate="0.9" pitch="+2Hz">
-                        {text}
-                    </prosody>
-                </voice>
-            </speak>
-            """
-            
-            result = synthesizer.speak_ssml_async(ssml).get()
-            
-            if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-                return result.audio_data
-            else:
-                print(f"Azure Speech synthesis failed: {result.reason}")
-                return None
         except Exception as e:
-            print(f"Azure Speech error: {e}")
+            print(f"OpenAI TTS error: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def _combine_audio_parts(self, audio_parts):
@@ -125,8 +145,10 @@ class AudioGenerator:
     
     def _windows_sapi(self, text):
         try:
+            print("Initializing Windows SAPI...")
             voice = win32com.client.Dispatch("SAPI.SpVoice")
             chunks = self._chunk_text(text, 800)
+            print(f"Processing {len(chunks)} chunks with SAPI")
             
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
                 temp_path = tmp.name
@@ -135,7 +157,8 @@ class AudioGenerator:
             file_stream.Open(temp_path, 3)
             voice.AudioOutputStream = file_stream
             
-            for chunk in chunks:
+            for i, chunk in enumerate(chunks):
+                print(f"Speaking chunk {i+1}/{len(chunks)}")
                 voice.Speak(chunk)
             
             file_stream.Close()
@@ -143,9 +166,13 @@ class AudioGenerator:
             with open(temp_path, 'rb') as f:
                 audio_data = f.read()
             
+            print(f"Generated {len(audio_data)} bytes of audio data")
             os.unlink(temp_path)
             return audio_data
-        except:
+        except Exception as e:
+            print(f"Windows SAPI error: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def _fallback_audio(self, text):

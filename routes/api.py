@@ -18,30 +18,55 @@ def init_generators(anthropic_api_key):
     """Initialize the generators with API keys."""
     global script_gen, audio_gen
     try:
+        print("Initializing script generator...")
         script_gen = ScriptGenerator(anthropic_api_key)
+        print("Initializing audio generator...")
         audio_gen = AudioGenerator()
         print("Generators initialized successfully")
+        print(f"Script generator: {script_gen is not None}")
+        print(f"Audio generator: {audio_gen is not None}")
     except Exception as e:
         print(f"Error initializing generators: {e}")
+        import traceback
+        traceback.print_exc()
         script_gen = None
         audio_gen = None
 
 def generate_audio(script):
     """Generate audio file from script."""
+    print(f"=== GENERATE AUDIO CALLED ===")
+    print(f"Script length: {len(script)} characters")
+    print(f"Audio generator available: {audio_gen is not None}")
+    
     try:
+        if not audio_gen:
+            print("ERROR: Audio generator not initialized")
+            return None, "Audio generator not initialized"
+        
+        print("Calling audio_gen.create_audio...")
         audio_data = audio_gen.create_audio(script)
+        print(f"Audio data returned: {audio_data is not None}")
+        
         if not audio_data:
+            print("ERROR: No audio data returned")
             return None, "Audio generation failed"
+        
+        print(f"Audio data size: {len(audio_data)} bytes")
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"podcast_{timestamp}.mp3"
         filepath = os.path.join(current_app.config['AUDIO_FOLDER'], filename)
         
+        print(f"Saving audio to: {filepath}")
         with open(filepath, 'wb') as f:
             f.write(audio_data)
         
+        print("Audio file saved successfully")
         return f"/static/audio/{filename}", None
     except Exception as e:
+        print(f"ERROR in generate_audio: {e}")
+        import traceback
+        traceback.print_exc()
         return None, str(e)
 
 @api_bp.route('/static/audio/<filename>')
