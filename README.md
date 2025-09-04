@@ -4,7 +4,7 @@ A Flask web application that converts research papers, articles, and web content
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-orange.svg)](https://openai.com)
+[![Anthropic](https://img.shields.io/badge/Anthropic-Claude--Opus--4-purple.svg)](https://anthropic.com)
 
 ## Features
 
@@ -32,7 +32,7 @@ A Flask web application that converts research papers, articles, and web content
 
 ### Backend Architecture
 - **Flask Application**: Main web server with modular route handling
-- **OpenAI Integration**: Uses GPT-4 for script generation with dynamic token limits
+- **Anthropic Integration**: Uses Claude Opus 4 (1M token context) for comprehensive script generation
 - **Audio Pipeline**: Custom AudioGenerator class for speech synthesis
 - **File Processing**: Temporary file handling for uploads and audio generation
 
@@ -40,7 +40,7 @@ A Flask web application that converts research papers, articles, and web content
 1. **Input Validation**: Checks file types and URL formats
 2. **Text Extraction**: Extracts clean text from PDFs or web pages
 3. **Content Analysis**: Determines content type and optimal podcast length
-4. **Script Generation**: Creates structured podcast scripts using OpenAI API
+4. **Script Generation**: Creates structured podcast scripts using Anthropic Claude Opus 4
 5. **Audio Conversion**: Generates MP3 files from scripts
 6. **File Delivery**: Serves audio files through Flask static routes
 
@@ -49,7 +49,7 @@ A Flask web application that converts research papers, articles, and web content
 - `extract_web_content()`: Web scraping with intelligent content selection
 - `detect_content_type()`: Content classification based on keywords
 - `calculate_podcast_length()`: Dynamic length calculation
-- `create_podcast_script()`: AI-powered script generation with chunking support
+- `create_podcast_script()`: AI-powered script generation with Claude Opus 4's 1M token context
 - `generate_audio()`: Audio file creation and management
 
 ## Use Cases
