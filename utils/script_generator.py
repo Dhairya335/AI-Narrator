@@ -70,7 +70,7 @@ class ScriptGenerator:
             
             stream = self.client.messages.create(
                 model="claude-opus-4-1-20250805",
-                max_tokens=200000,
+                max_tokens=32000,
                 temperature=0.7,
                 system=system_prompt,
                 messages=[

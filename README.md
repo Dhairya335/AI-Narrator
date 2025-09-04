@@ -13,28 +13,32 @@ A Flask web application that converts research papers, articles, and web content
 - **Multi-format Support**: Handles PDF uploads and web URLs
 - **Content Type Detection**: Automatically identifies research papers, news articles, tutorials, and general content
 - **Text Extraction**: Uses PyMuPDF for PDFs and BeautifulSoup for web scraping with content filtering
-- **Large Document Handling**: Processes content up to 50K+ characters with intelligent chunking
+- **Large Document Handling**: Processes content up to 600K+ characters leveraging Claude Opus 4's 200K token context
 
 ### Podcast Generation
 - **Adaptive Length**: Determines podcast duration based on content size
-  - Short content (< 2K chars): 3-4 minutes
-  - Medium content (2K-10K chars): 6-8 minutes  
-  - Long content (10K-30K chars): 12-15 minutes
-  - Extended content (30K+ chars): 20-25 minutes
-- **Content-Specific Scripts**: Tailored explanations for different content types
-- **Structured Format**: Includes hooks, main content, implications, and conclusions
+  - Short content (< 5K chars): Comprehensive coverage
+  - Medium content (5K-20K chars): Detailed analysis
+  - Long content (20K-50K chars): In-depth exploration
+  - Extended content (50K-100K chars): Comprehensive coverage
+  - Comprehensive content (100K+ chars): Extensive detailed analysis
+- **Content-Specific Scripts**: Tailored explanations for research, news, tutorials, and general content
+- **Structured Format**: Includes compelling hooks, digestible insights, real-world implications, and memorable conclusions
+- **Maximum Output**: Generates up to 32,000 tokens of comprehensive podcast content
 
 ### Audio Generation
-- **Text-to-Speech**: Converts generated scripts to MP3 audio files
-- **Natural Delivery**: Conversational tone optimized for learning
+- **OpenAI TTS Integration**: Uses OpenAI's tts-1-hd model with natural 'alloy' voice
+- **High-Quality Audio**: Generates MP3 files with conversational tone optimized for learning
+- **Intelligent Chunking**: Processes long scripts in 4K character chunks for optimal audio quality
+- **Fallback Options**: Windows SAPI and tone generation as backup audio methods
 - **File Management**: Automatic timestamped file naming and storage
 
 ## Technical Implementation
 
 ### Backend Architecture
 - **Flask Application**: Main web server with modular route handling
-- **Anthropic Integration**: Uses Claude Opus 4 (1M token context) for comprehensive script generation
-- **Audio Pipeline**: Custom AudioGenerator class for speech synthesis
+- **Anthropic Integration**: Uses Claude Opus 4 (200K token context, 32K output) for comprehensive script generation
+- **Audio Pipeline**: OpenAI TTS integration with AudioGenerator class for high-quality speech synthesis
 - **File Processing**: Temporary file handling for uploads and audio generation
 
 ### Content Processing Pipeline
@@ -42,16 +46,21 @@ A Flask web application that converts research papers, articles, and web content
 2. **Text Extraction**: Extracts clean text from PDFs or web pages
 3. **Content Analysis**: Determines content type and optimal podcast length
 4. **Script Generation**: Creates structured podcast scripts using Anthropic Claude Opus 4
-5. **Audio Conversion**: Generates MP3 files from scripts
+5. **Audio Conversion**: Generates high-quality MP3 files using OpenAI TTS
 6. **File Delivery**: Serves audio files through Flask static routes
 
 ### Key Components
-- `extract_pdf_text()`: PDF text extraction using PyMuPDF
-- `extract_web_content()`: Web scraping with intelligent content selection
-- `detect_content_type()`: Content classification based on keywords
-- `calculate_podcast_length()`: Dynamic length calculation
-- `create_podcast_script()`: AI-powered script generation with Claude Opus 4's 1M token context
-- `generate_audio()`: Audio file creation and management
+- `extract_pdf_text()`: PDF text extraction using PyMuPDF with content filtering
+- `extract_web_content()`: Web scraping with BeautifulSoup and intelligent content selection
+- `detect_content_type()`: Content classification for research, news, tutorials, and general content
+- `calculate_podcast_length()`: Dynamic length calculation based on content size
+- `chunk_large_document()`: Advanced chunking for documents over 600K characters
+- `chunk_content()`: Content splitting optimized for Claude Opus 4's context window
+- `create_podcast_script()`: AI-powered script generation using Claude Opus 4 (32K token output)
+- `_openai_tts()`: High-quality audio generation using OpenAI's TTS API
+- `_windows_sapi()`: Fallback Windows Speech API integration
+- `_combine_audio_parts()`: Audio chunk combination with ffmpeg support
+- `generate_audio()`: Main audio file creation and management function
 
 ## Use Cases
 
