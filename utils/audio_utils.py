@@ -5,9 +5,9 @@ import struct
 import tempfile
 
 try:
-    from gtts import gTTS
+    import azure.cognitiveservices.speech as speechsdk
 except ImportError:
-    gTTS = None
+    speechsdk = None
 
 try:
     import win32com.client
@@ -15,9 +15,13 @@ except ImportError:
     win32com = None
 
 class AudioGenerator:
+    def __init__(self):
+        self.speech_key = os.getenv('AZURE_SPEECH_KEY')
+        self.speech_region = os.getenv('AZURE_SPEECH_REGION', 'eastus')
+    
     def create_audio(self, text):
-        if gTTS:
-            return self._google_tts(text)
+        if speechsdk and self.speech_key:
+            return self._azure_speech(text)
         elif win32com:
             return self._windows_sapi(text)
         else:
@@ -43,23 +47,39 @@ class AudioGenerator:
         
         return chunks
     
-    def _google_tts(self, text):
+    def _azure_speech(self, text):
         try:
-            chunks = self._chunk_text(text)
-            audio_parts = []
+            speech_config = speechsdk.SpeechConfig(subscription=self.speech_key, region=self.speech_region)
             
-            for chunk in chunks:
-                tts = gTTS(text=chunk, lang='en', slow=False)
-                buffer = io.BytesIO()
-                tts.write_to_fp(buffer)
-                buffer.seek(0)
-                audio_parts.append(buffer.read())
+            # Use Azure's most natural voice with vibevoice AI
+            speech_config.speech_synthesis_voice_name = "en-US-AvaMultilingualNeural"
+            speech_config.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3)
             
-            if len(audio_parts) == 1:
-                return audio_parts[0]
+            # Enable vibevoice AI features for more natural speech
+            speech_config.set_property(speechsdk.PropertyId.SpeechServiceConnection_SynthEnableCompressedAudioTransmission, "true")
             
-            return self._combine_audio_parts(audio_parts)
-        except:
+            synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=None)
+            
+            # Use SSML for better control over speech synthesis
+            ssml = f"""
+            <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+                <voice name="en-US-AvaMultilingualNeural">
+                    <prosody rate="0.9" pitch="+2Hz">
+                        {text}
+                    </prosody>
+                </voice>
+            </speak>
+            """
+            
+            result = synthesizer.speak_ssml_async(ssml).get()
+            
+            if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                return result.audio_data
+            else:
+                print(f"Azure Speech synthesis failed: {result.reason}")
+                return None
+        except Exception as e:
+            print(f"Azure Speech error: {e}")
             return None
     
     def _combine_audio_parts(self, audio_parts):

@@ -1,10 +1,10 @@
-from openai import OpenAI
-from .content_analyzer import detect_content_type, calculate_podcast_length, chunk_content
+import anthropic
+from .content_analyzer import detect_content_type, calculate_podcast_length, chunk_content, chunk_large_document
 
 
 class ScriptGenerator:
     def __init__(self, api_key):
-        self.client = OpenAI(api_key=api_key)
+        self.client = anthropic.Anthropic(api_key=api_key)
     
     def create_podcast_script(self, text):
         """Generate podcast script from text content."""
@@ -15,8 +15,7 @@ class ScriptGenerator:
             return None
         
         content_type = detect_content_type(text)
-        podcast_length, max_tokens = calculate_podcast_length(len(text))
-        print(f"Content type: {content_type}, Length: {podcast_length}, Tokens: {max_tokens}")
+        print(f"Content type: {content_type}, Content length: {len(text)} characters")
         
         system_prompt = (
             "You are an expert podcast host with deep knowledge across all fields. Your specialty is "
@@ -38,7 +37,8 @@ class ScriptGenerator:
             "short": "Create a comprehensive podcast covering all important aspects within 5 minutes.",
             "medium": "Create a detailed podcast with thorough analysis and context, approximately 8-10 minutes long.",
             "long": "Create an in-depth podcast covering all major aspects comprehensively, around 15-20 minutes.",
-            "extended": "Create a comprehensive, detailed podcast with thorough exploration of all aspects, lasting 30 minutes or more."
+            "extended": "Create a comprehensive, detailed podcast with thorough exploration of all aspects, lasting 30 minutes or more.",
+            "comprehensive": "Create an extensive, highly detailed podcast with deep analysis of all aspects, complex topics, and nuanced discussions, lasting 45+ minutes."
         }
         
         content_instructions = {
@@ -48,24 +48,14 @@ class ScriptGenerator:
             'general': "Extract key insights and explain their significance."
         }
         
-        chunks = chunk_content(text)
-        
-        if len(chunks) == 1:
-            return self._generate_single_script(
-                chunks[0], system_prompt, structure_prompt, 
-                length_instructions[podcast_length],
-                content_instructions.get(content_type, content_instructions['general']),
-                max_tokens
-            )
-        else:
-            return self._generate_multi_chunk_script(
-                chunks, system_prompt, structure_prompt,
-                length_instructions[podcast_length],
-                content_instructions.get(content_type, content_instructions['general']),
-                max_tokens
-            )
+        # Generate script directly without chunking - let Claude handle the full content
+        return self._generate_single_script(
+            text, system_prompt, structure_prompt,
+            "Create a comprehensive podcast script covering all aspects of the content.",
+            content_instructions.get(content_type, content_instructions['general'])
+        )
     
-    def _generate_single_script(self, content, system_prompt, structure_prompt, length_instruction, content_instruction, max_tokens):
+    def _generate_single_script(self, content, system_prompt, structure_prompt, length_instruction, content_instruction):
         """Generate script for single chunk of content."""
         full_prompt = (
             f"{length_instruction} "
@@ -76,74 +66,29 @@ class ScriptGenerator:
         
         try:
             print(f"Making API call with {len(full_prompt)} character prompt...")
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
+            print("Using streaming to avoid timeout...")
+            
+            stream = self.client.messages.create(
+                model="claude-opus-4-1-20250805",
+                max_tokens=8192,
+                temperature=0.7,
+                system=system_prompt,
                 messages=[
-                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": full_prompt}
                 ],
-                max_tokens=max_tokens,
-                temperature=0.7
+                stream=True
             )
-            print("API call successful")
-            return response.choices[0].message.content.strip()
+            
+            content = ""
+            for chunk in stream:
+                if chunk.type == "content_block_delta":
+                    content += chunk.delta.text
+            print("Streaming API call successful")
+            return content.strip()
         except Exception as e:
-            print(f"OpenAI API Error: {e}")
+            print(f"Anthropic API Error: {e}")
             print(f"Error type: {type(e)}")
             import traceback
             traceback.print_exc()
             return None
     
-    def _generate_multi_chunk_script(self, chunks, system_prompt, structure_prompt, length_instruction, content_instruction, max_tokens):
-        """Generate script for multiple chunks of content."""
-        scripts = []
-        for i, chunk in enumerate(chunks):
-            chunk_prompt = (
-                f"Part {i+1} of {len(chunks)}. {length_instruction} "
-                f"{content_instruction}\n\n"
-                f"{structure_prompt}\n\n"
-                f"Content: {chunk}"
-            )
-            
-            try:
-                response = self.client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": chunk_prompt}
-                    ],
-                    max_tokens=max_tokens // len(chunks),
-                    temperature=0.7
-                )
-                scripts.append(response.choices[0].message.content.strip())
-            except Exception as e:
-                print(f"OpenAI API Error for chunk {i+1}: {e}")
-                continue
-        
-        if scripts:
-            return self._combine_scripts(scripts, max_tokens)
-        
-        return None
-    
-    def _combine_scripts(self, scripts, max_tokens):
-        """Combine multiple script segments into one cohesive script."""
-        final_prompt = (
-            f"Combine these podcast segments into one cohesive script. "
-            f"Ensure smooth transitions and natural flow:\n\n" +
-            "\n\n--- SEGMENT BREAK ---\n\n".join(scripts)
-        )
-        
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "You are an expert podcast editor. Create seamless, engaging scripts."},
-                    {"role": "user", "content": final_prompt}
-                ],
-                max_tokens=max_tokens,
-                temperature=0.6
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            print(f"OpenAI API Error for final script: {e}")
-            return "\n\n".join(scripts)
