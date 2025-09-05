@@ -1,19 +1,10 @@
----
-title: AI Narrator
-colorFrom: blue
-colorTo: purple
-sdk: docker
-pinned: false
-license: mit
----
-
 # AI Narrator
 
 A Flask web application that converts research papers, articles, and web content into AI-generated podcast audio. Built to help researchers and students consume academic content more efficiently.
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
-[![Anthropic](https://img.shields.io/badge/Anthropic-Claude--Opus--4-purple.svg)](https://anthropic.com)
+[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--5--mini-green.svg)](https://openai.com)
 
 
 ## Features
@@ -22,7 +13,7 @@ A Flask web application that converts research papers, articles, and web content
 - **Multi-format Support**: Handles PDF uploads and web URLs
 - **Content Type Detection**: Automatically identifies research papers, news articles, tutorials, and general content
 - **Text Extraction**: Uses PyMuPDF for PDFs and BeautifulSoup for web scraping with content filtering
-- **Large Document Handling**: Processes content up to 600K+ characters leveraging Claude Opus 4's 200K token context
+- **Large Document Handling**: Processes content up to 600K+ characters leveraging GPT-5-mini's context window
 
 ### Podcast Generation
 - **Adaptive Length**: Determines podcast duration based on content size
@@ -33,7 +24,7 @@ A Flask web application that converts research papers, articles, and web content
   - Comprehensive content (100K+ chars): Extensive detailed analysis
 - **Content-Specific Scripts**: Tailored explanations for research, news, tutorials, and general content
 - **Structured Format**: Includes compelling hooks, digestible insights, real-world implications, and memorable conclusions
-- **Maximum Output**: Generates up to 32,000 tokens of comprehensive podcast content
+- **Maximum Output**: Generates up to 128,000 tokens of comprehensive podcast content
 
 ### Audio Generation
 - **OpenAI TTS Integration**: Uses OpenAI's tts-1-hd model with natural 'alloy' voice
@@ -46,7 +37,7 @@ A Flask web application that converts research papers, articles, and web content
 
 ### Backend Architecture
 - **Flask Application**: Main web server with modular route handling
-- **Anthropic Integration**: Uses Claude Opus 4 (200K token context, 32K output) for comprehensive script generation
+- **OpenAI Integration**: Uses GPT-5-mini with 128K token output for comprehensive script generation
 - **Audio Pipeline**: OpenAI TTS integration with AudioGenerator class for high-quality speech synthesis
 - **File Processing**: Temporary file handling for uploads and audio generation
 
@@ -54,7 +45,7 @@ A Flask web application that converts research papers, articles, and web content
 1. **Input Validation**: Checks file types and URL formats
 2. **Text Extraction**: Extracts clean text from PDFs or web pages
 3. **Content Analysis**: Determines content type and optimal podcast length
-4. **Script Generation**: Creates structured podcast scripts using Anthropic Claude Opus 4
+4. **Script Generation**: Creates structured podcast scripts using OpenAI GPT-5-mini
 5. **Audio Conversion**: Generates high-quality MP3 files using OpenAI TTS
 6. **File Delivery**: Serves audio files through Flask static routes
 
@@ -65,7 +56,7 @@ A Flask web application that converts research papers, articles, and web content
 - `calculate_podcast_length()`: Dynamic length calculation based on content size
 - `chunk_large_document()`: Advanced chunking for documents over 600K characters
 - `chunk_content()`: Content splitting optimized for Claude Opus 4's context window
-- `create_podcast_script()`: AI-powered script generation using Claude Opus 4 (32K token output)
+- `create_podcast_script()`: AI-powered script generation using GPT-5-mini with 128K token output
 - `_openai_tts()`: High-quality audio generation using OpenAI's TTS API
 - `_windows_sapi()`: Fallback Windows Speech API integration
 - `_combine_audio_parts()`: Audio chunk combination with ffmpeg support
