@@ -2,6 +2,8 @@
 
 A Flask web application that converts research papers, articles, and web content into AI-generated podcast audio. Built to help researchers and students consume academic content more efficiently.
 
+**[Try it live here](https://ai-narrator.onrender.com/)**
+
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
 [![OpenAI](https://img.shields.io/badge/OpenAI-GPT--5--mini-green.svg)](https://openai.com)
