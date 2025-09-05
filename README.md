@@ -6,7 +6,7 @@ A Flask web application that converts research papers, articles, and web content
 [![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
 [![Anthropic](https://img.shields.io/badge/Anthropic-Claude--Opus--4-purple.svg)](https://anthropic.com)
 
-**[Try it live here](https://ai-narrator.onrender.com/)**
+**[Try it live here]([https://ai-narrator.onrender.com/](https://huggingface.co/spaces/Dhairya335/AI-Narrator))**
 
 ## Features
 
