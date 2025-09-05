@@ -15,17 +15,10 @@ try:
 except ImportError:
     win32com = None
 
-try:
-    from huggingface_hub import InferenceClient
-except ImportError:
-    InferenceClient = None
-
 class AudioGenerator:
     def __init__(self):
         self.openai_client = None
-        self.hf_client = None
         self._init_openai_tts()
-        self._init_vibevoice_hf()
     
     def _init_openai_tts(self):
         """Initialize OpenAI TTS."""
@@ -44,33 +37,14 @@ class AudioGenerator:
             print(f"Failed to initialize OpenAI TTS: {e}")
             self.openai_client = None
     
-    def _init_vibevoice_hf(self):
-        """Initialize VibeVoice HF Inference client."""
-        try:
-            if InferenceClient:
-                hf_token = os.getenv('HF_TOKEN')
-                if hf_token:
-                    print("Initializing VibeVoice HF client...")
-                    self.hf_client = InferenceClient(model="microsoft/VibeVoice-1.5B", token=hf_token)
-                    print("VibeVoice HF client initialized successfully")
-                else:
-                    print("HF_TOKEN not found")
-            else:
-                print("HuggingFace Hub library not available")
-        except Exception as e:
-            print(f"Failed to initialize VibeVoice HF client: {e}")
-            self.hf_client = None
+
     
     def create_audio(self, text):
         print(f"AudioGenerator.create_audio called with {len(text)} characters")
-        print(f"VibeVoice HF available: {self.hf_client is not None}")
         print(f"OpenAI TTS available: {self.openai_client is not None}")
         print(f"Windows SAPI available: {win32com is not None}")
         
-        if self.hf_client:
-            print("Using VibeVoice HF")
-            return self._vibevoice_hf(text)
-        elif self.openai_client:
+        if self.openai_client:
             print("Using OpenAI TTS")
             return self._openai_tts(text)
         elif win32com:
@@ -80,7 +54,7 @@ class AudioGenerator:
             print("Using fallback audio")
             return self._fallback_audio(text)
     
-    def _chunk_text(self, text, max_length=4500):
+    def _chunk_text(self, text, max_length=4000):
         if len(text) <= max_length:
             return [text]
         
@@ -103,7 +77,7 @@ class AudioGenerator:
     def _openai_tts(self, text):
         """Generate audio using OpenAI TTS."""
         try:
-            chunks = self._chunk_text(text, max_length=4000)  # OpenAI limit
+            chunks = self._chunk_text(text, max_length=4000)
             audio_parts = []
             
             for i, chunk in enumerate(chunks):
@@ -185,29 +159,7 @@ class AudioGenerator:
         except:
             return b''.join(audio_parts)
     
-    def _vibevoice_hf(self, text):
-        """Generate audio using VibeVoice HF Inference API."""
-        try:
-            chunks = self._chunk_text(text, max_length=1000)
-            audio_parts = []
-            
-            for i, chunk in enumerate(chunks):
-                print(f"Processing chunk {i+1}/{len(chunks)}: {len(chunk)} characters")
-                
-                audio_bytes = self.hf_client.text_to_speech(chunk)
-                audio_parts.append(audio_bytes)
-                print(f"Generated {len(audio_bytes)} bytes for chunk {i+1}")
-            
-            if len(audio_parts) == 1:
-                return audio_parts[0]
-            
-            return self._combine_audio_parts(audio_parts)
-            
-        except Exception as e:
-            print(f"VibeVoice HF error: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
+
     
     def _windows_sapi(self, text):
         try:
